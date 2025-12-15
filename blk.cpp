@@ -1356,15 +1356,23 @@ void save_block_to_file(std::string path, Block &b)
 
 void Block::Value::clear()
 {
+  printf("cleared value %p\n", this);
   if (type == Block::ValueType::BLOCK && bl)
   {
     bl->clear();
     delete bl;
+    bl = nullptr;
   }
   else if (type == Block::ValueType::ARRAY && a)
+  {
     delete a;
+    a = nullptr;
+  }
   else if (type == Block::ValueType::STRING && s)
+  {
     delete s;
+    s = nullptr;
+  }
 
   type = Block::ValueType::EMPTY;
 }
@@ -1868,26 +1876,9 @@ void Block::add_detalization(Block &det)
 void Block::copy(const Block *b)
 {
   names = b->names;
-  values = b->values;
+  values.resize(b->values.size());
   for (int i = 0; i < b->names.size(); i++)
-  {
-    if (values[i].type == ValueType::ARRAY && values[i].a)
-    {
-      values[i].a = new DataArray();
-      values[i].a->type = b->values[i].a->type;
-      values[i].a->values = b->values[i].a->values;
-    }
-    if (values[i].type == ValueType::BLOCK && values[i].bl)
-    {
-      values[i].bl = new Block();
-      values[i].bl->copy(b->values[i].bl);
-    }
-    if (values[i].type == ValueType::STRING && values[i].s)
-    {
-      values[i].s = new std::string();
-      *(values[i].s) = *(b->values[i].s);
-    }
-  }
+    values[i].copy(b->values[i]);
 }
 
 Block::~Block()

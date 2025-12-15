@@ -149,7 +149,12 @@ struct Block
       {
         a = new DataArray();
         if (v.a)
-          *a = *v.a;
+        {
+          a->type = v.a->type;
+          a->values.resize(v.a->values.size());
+          for (int i=0;i<a->values.size();i++)
+            a->values[i].copy(v.a->values[i]);
+        }
       }
     }
     inline Value& operator=(const Value& rhs)
@@ -165,7 +170,11 @@ struct Block
 
   struct DataArray
   {
-    ~DataArray() { for (auto &v : values) v.clear(); }
+    ~DataArray() { 
+      for (auto &v : values) 
+        v.clear(); 
+      values.clear();
+    }
     ValueType type = EMPTY;
     std::vector<Value> values;
   };
