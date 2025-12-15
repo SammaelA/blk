@@ -1356,7 +1356,6 @@ void save_block_to_file(std::string path, Block &b)
 
 void Block::Value::clear()
 {
-  printf("cleared value %p\n", this);
   if (type == Block::ValueType::BLOCK && bl)
   {
     bl->clear();
