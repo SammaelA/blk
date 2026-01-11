@@ -846,7 +846,7 @@ bool load_block(const char *data, int &cur_pos, Block &b, const Block &global_pa
         fprintf(stderr, "line %d expected \" at the end of a string in include path\n", cur_line);
         return false;
       }
-      printf("path = <%s>\n", path.c_str());
+
       Block b_to_include;
       bool loaded_b_to_include = load_block_from_file(path, b_to_include);
       if (loaded_b_to_include)
