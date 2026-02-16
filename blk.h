@@ -152,8 +152,8 @@ struct Block
         {
           a->type = v.a->type;
           a->values.resize(v.a->values.size());
-          for (int i=0;i<a->values.size();i++)
-            a->values[i].copy(v.a->values[i]);
+          for (int j=0;j<a->values.size();j++)
+            a->values[j].copy(v.a->values[j]);
         }
       }
     }
