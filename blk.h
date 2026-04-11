@@ -272,7 +272,7 @@ struct Block
   void set_mat4(const std::string name, float4x4 base_val = float4x4());
   void set_enum(const std::string name, const std::string &type_name, unsigned base_val = 0);
   void set_string(const std::string name, std::string base_val = "");
-  void set_block(const std::string name, Block *bl);
+  void set_block(const std::string name, const Block *bl);
   void set_arr(const std::string name, const std::vector<double> &values);
   void set_arr(const std::string name, const std::vector<float> &values);
   void set_arr(const std::string name, const std::vector<int> &values);

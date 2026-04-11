@@ -1714,7 +1714,7 @@ void Block::set_string(const std::string name, std::string base_val)
   val.s = new std::string(base_val);
   set_value(name, val);
 }
-void Block::set_block(const std::string name, Block *bl)
+void Block::set_block(const std::string name, const Block *bl)
 {
   Block::Value val;
   val.type = Block::ValueType::BLOCK;
