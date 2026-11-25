@@ -268,10 +268,11 @@ std::string read_string(const char *data, int &cur_pos)
         cur_code = cur_code * 8 + data[cur_pos] - '0';
         state = State::OCT_2;
       }
-      else
+      else // this character is not part of the escape
       {
         s.push_back(char(cur_code));
         state = State::NORMAL;
+        continue;
       }
     }
     else if (state == State::OCT_2)
@@ -279,12 +280,14 @@ std::string read_string(const char *data, int &cur_pos)
       if (data[cur_pos] >= '0' && data[cur_pos] <= '7')
       {
         cur_code = cur_code * 8 + data[cur_pos] - '0';
+        s.push_back(char(cur_code));
         state = State::NORMAL;
       }
-      else
+      else // this character is not part of the escape
       {
         s.push_back(char(cur_code));
         state = State::NORMAL;
+        continue;
       }
     }
     else if (state == State::HEX)
@@ -310,10 +313,12 @@ std::string read_string(const char *data, int &cur_pos)
         s.push_back('\\');
         s.push_back('x');
         state = State::NORMAL;
+        continue; // this character is not part of the escape, process it as a normal one
       }
     }
     else if (state == State::HEX_1)
     {
+      bool is_hex_digit = true;
       if (data[cur_pos] >= '0' && data[cur_pos] <= '9')
       {
         cur_code = cur_code * 16 + data[cur_pos] - '0';
@@ -328,9 +333,12 @@ std::string read_string(const char *data, int &cur_pos)
       }
       else
       {
-        s.push_back(char(cur_code));
-        state = State::NORMAL;
+        is_hex_digit = false;
       }
+      s.push_back(char(cur_code));
+      state = State::NORMAL;
+      if (!is_hex_digit) // this character is not part of the escape
+        continue;
     }
     len++;
     cur_pos++;
@@ -365,8 +373,8 @@ std::string save_string(const std::string &s)
     {
       res.push_back('\\');
       res.push_back('x');
-      res.push_back(hex_chars[s[i] / 16]);
-      res.push_back(hex_chars[s[i] % 16]);
+      res.push_back(hex_chars[(uint8_t)s[i] / 16]);
+      res.push_back(hex_chars[(uint8_t)s[i] % 16]);
     }
     else if (!found)
       res.push_back(s[i]);
