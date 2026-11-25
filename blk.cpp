@@ -22,9 +22,9 @@ using LiteMath::uint2;
 using LiteMath::uint3;
 using LiteMath::uint4;
 
-int cur_line = 0;
-bool in_comment_assume = false;
-bool in_comment = false;
+static thread_local int  cur_line = 0;
+static thread_local bool in_comment_assume = false;
+static thread_local bool in_comment = false;
 
 struct EnumInfo
 {
@@ -123,7 +123,7 @@ bool is_empty(const char c)
 
   if (in_comment)
   {
-    if (c == '\n')
+    if (c == '\n' || c == '\0')
     {
       in_comment = false;
 
@@ -165,7 +165,7 @@ std::string next_token(const char *data, int &pos)
     res = "";
   else
   {
-    while (is_empty(data[pos]))
+    while (is_empty(data[pos]) && data[pos] != 0)
       pos++;
     if (data[pos] == 0)
       res = "";
@@ -880,18 +880,14 @@ bool load_block_from_string(const std::string &str, Block &b)
   if (str.empty())
     return false;
   cur_line = 0;
+  in_comment_assume = false;
+  in_comment = false;
   int cur_pos = 0;
   const char *data = str.c_str();
   std::string token = next_token(data, cur_pos);
   if (token == "{")
-  {
     return load_block(data, cur_pos, b, b);
-  }
-  else
-  {
-    return false;
-  }
-  return true;
+  return false;
 }
 
 bool load_block_from_file(std::string path, Block &b)
