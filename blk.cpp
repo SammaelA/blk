@@ -700,16 +700,16 @@ bool read_value(const char *data, int &cur_pos, Block::Value &v, const Block &pa
       if (info_it == get_enum_info_by_name().end())
       {
         fprintf(stderr, "line %d enum %s is not registered\n", cur_line, type_name.c_str());
-        v.ev.type_id = 0;
-        v.ev.val_id  = 0; //it is an error, but we can ignore it and hope the user code will deal with it
+        v.type = Block::ValueType::EMPTY;
+        return false;
       }
 
       auto val_it = get_enum_info()[info_it->second].id_by_name.find(name);
       if (val_it == get_enum_info()[info_it->second].id_by_name.end())
       {
         fprintf(stderr, "line %d enum %s has no value %s\n", cur_line, type_name.c_str(), name.c_str());
-        v.ev.type_id = 0;
-        v.ev.val_id  = 0; //it is an error, but we can ignore it and hope the user code will deal with it
+        v.type = Block::ValueType::EMPTY;
+        return false;
       }
       else
       {
@@ -879,7 +879,7 @@ bool load_block(const char *data, int &cur_pos, Block &b, const Block &global_pa
       correct = correct && read_value(data, cur_pos, b.values.back(), b, global_parent);
     }
   }
-  return true;
+  return false;
 }
 
 bool load_block_from_string(const std::string &str, Block &b)
