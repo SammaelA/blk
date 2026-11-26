@@ -911,8 +911,7 @@ bool load_block_from_file(std::string path, Block &b)
   }
   iss << f.rdbuf();
   std::string entireFile = iss.str();
-  load_block_from_string(entireFile, b);
-  return true;
+  return load_block_from_string(entireFile, b);
 }
 
 int Block::size() const
