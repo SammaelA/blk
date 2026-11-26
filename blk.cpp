@@ -795,7 +795,7 @@ bool read_array(const char *data, int &cur_pos, Block::DataArray &a)
     {
       Block::Value val;
       std::string tok = next_token(data, cur_pos);
-      if (tok == "}")
+      if (tok == "}" && a.values.empty())
       {
         a.type = Block::ValueType::DOUBLE;
         return true;
@@ -826,7 +826,11 @@ bool read_array(const char *data, int &cur_pos, Block::DataArray &a)
       if (a.values.empty())
         array_type = val.type;
       else if (array_type != val.type)
+      {
         fprintf(stderr, "line %d array has values of diffrent types", cur_line);
+        val.clear();
+        return false;
+      }
       a.values.push_back(val);
 
       tok = next_token(data, cur_pos);
