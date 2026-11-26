@@ -383,6 +383,27 @@ std::string save_string(const std::string &s)
   return res;
 }
 
+static int blk_strtoi(const char *base, char **end_ptr)
+{
+  return std::strtol(base, end_ptr, 10);
+}
+
+static uint64_t blk_strtou64(const char *base, char **end_ptr)
+{
+  return std::strtoull(base, end_ptr, 10);
+}
+
+#define LOAD_NUMBER(load_fun, v, val, out) \
+      errno = 0; \
+      char *ptr = (val).data(); \
+      (out) = load_fun(val.c_str(), &ptr); \
+      if (errno != 0 || ptr == (val).data()) \
+      { \
+        fprintf(stderr, "line %d token \"%s\" is not a valid number", cur_line, (val).c_str()); \
+        (v).type = Block::ValueType::EMPTY; \
+        return false; \
+      }
+
 bool load_block(const char *data, int &cur_pos, Block &b, const Block &global_parent);
 bool read_array(const char *data, int &cur_pos, Block::DataArray &a);
 bool read_value(const char *data, int &cur_pos, Block::Value &v, const Block &parent, const Block &global_parent)
@@ -447,19 +468,19 @@ bool read_value(const char *data, int &cur_pos, Block::Value &v, const Block &pa
     {
       std::string val = next_token(data, cur_pos);
       v.type = Block::ValueType::INT;
-      v.i = std::stol(val);
+      LOAD_NUMBER(blk_strtoi, v, val, v.i);
     }
     else if (type == "u" || type == "u64")
     {
       std::string val = next_token(data, cur_pos);
       v.type = Block::ValueType::UINT64;
-      v.u = std::stoul(val);
+      LOAD_NUMBER(blk_strtou64, v, val, v.u);
     }
     else if (type == "r")
     {
       std::string val = next_token(data, cur_pos);
       v.type = Block::ValueType::DOUBLE;
-      v.d = std::stod(val);
+      LOAD_NUMBER(std::strtod, v, val, v.d);
     }
     else if (type == "p2")
     {
@@ -469,7 +490,7 @@ bool read_value(const char *data, int &cur_pos, Block::Value &v, const Block &pa
       v.v2 = float2(0, 0);
 
       val = next_token(data, cur_pos);
-      v.v2.x = std::stod(val);
+      LOAD_NUMBER(std::strtod, v, val, v.v2.x);
 
       val = next_token(data, cur_pos);
       ok = ok && (val == ",");
@@ -477,7 +498,7 @@ bool read_value(const char *data, int &cur_pos, Block::Value &v, const Block &pa
       if (ok)
       {
         val = next_token(data, cur_pos);
-        v.v2.y = std::stod(val);
+        LOAD_NUMBER(std::strtod, v, val, v.v2.y);
       }
       if (!ok)
       {
@@ -494,14 +515,14 @@ bool read_value(const char *data, int &cur_pos, Block::Value &v, const Block &pa
       v.v3 = float3(0, 0, 0);
 
       val = next_token(data, cur_pos);
-      v.v3.x = std::stod(val);
+      LOAD_NUMBER(std::strtod, v, val, v.v3.x);
 
       val = next_token(data, cur_pos);
       ok = ok && (val == ",");
       if (ok)
       {
         val = next_token(data, cur_pos);
-        v.v3.y = std::stod(val);
+        LOAD_NUMBER(std::strtod, v, val, v.v3.y);
       }
 
       val = next_token(data, cur_pos);
@@ -509,7 +530,7 @@ bool read_value(const char *data, int &cur_pos, Block::Value &v, const Block &pa
       if (ok)
       {
         val = next_token(data, cur_pos);
-        v.v3.z = std::stod(val);
+        LOAD_NUMBER(std::strtod, v, val, v.v3.z);
       }
       if (!ok)
       {
@@ -526,14 +547,14 @@ bool read_value(const char *data, int &cur_pos, Block::Value &v, const Block &pa
       v.v4 = float4(0, 0, 0, 0);
 
       val = next_token(data, cur_pos);
-      v.v4.x = std::stod(val);
+      LOAD_NUMBER(std::strtod, v, val, v.v4.x);
 
       val = next_token(data, cur_pos);
       ok = ok && (val == ",");
       if (ok)
       {
         val = next_token(data, cur_pos);
-        v.v4.y = std::stod(val);
+        LOAD_NUMBER(std::strtod, v, val, v.v4.y);
       }
 
       val = next_token(data, cur_pos);
@@ -541,7 +562,7 @@ bool read_value(const char *data, int &cur_pos, Block::Value &v, const Block &pa
       if (ok)
       {
         val = next_token(data, cur_pos);
-        v.v4.z = std::stod(val);
+        LOAD_NUMBER(std::strtod, v, val, v.v4.z);
       }
 
       val = next_token(data, cur_pos);
@@ -549,7 +570,7 @@ bool read_value(const char *data, int &cur_pos, Block::Value &v, const Block &pa
       if (ok)
       {
         val = next_token(data, cur_pos);
-        v.v4.w = std::stod(val);
+        LOAD_NUMBER(std::strtod, v, val, v.v4.w);
       }
       if (!ok)
       {
@@ -566,7 +587,7 @@ bool read_value(const char *data, int &cur_pos, Block::Value &v, const Block &pa
       v.iv2 = int2(0, 0);
 
       val = next_token(data, cur_pos);
-      v.iv2.x = std::stoi(val);
+      LOAD_NUMBER(blk_strtoi, v, val, v.iv2.x);
 
       val = next_token(data, cur_pos);
       ok = ok && (val == ",");
@@ -574,7 +595,7 @@ bool read_value(const char *data, int &cur_pos, Block::Value &v, const Block &pa
       if (ok)
       {
         val = next_token(data, cur_pos);
-        v.iv2.y = std::stoi(val);
+        LOAD_NUMBER(blk_strtoi, v, val, v.iv2.y);
       }
       if (!ok)
       {
@@ -591,14 +612,14 @@ bool read_value(const char *data, int &cur_pos, Block::Value &v, const Block &pa
       v.iv3 = int3(0, 0, 0);
 
       val = next_token(data, cur_pos);
-      v.iv3.x = std::stoi(val);
+      LOAD_NUMBER(blk_strtoi, v, val, v.iv3.x);
 
       val = next_token(data, cur_pos);
       ok = ok && (val == ",");
       if (ok)
       {
         val = next_token(data, cur_pos);
-        v.iv3.y = std::stoi(val);
+        LOAD_NUMBER(blk_strtoi, v, val, v.iv3.y);
       }
 
       val = next_token(data, cur_pos);
@@ -606,7 +627,7 @@ bool read_value(const char *data, int &cur_pos, Block::Value &v, const Block &pa
       if (ok)
       {
         val = next_token(data, cur_pos);
-        v.iv3.z = std::stoi(val);
+        LOAD_NUMBER(blk_strtoi, v, val, v.iv3.z);
       }
       if (!ok)
       {
@@ -623,14 +644,14 @@ bool read_value(const char *data, int &cur_pos, Block::Value &v, const Block &pa
       v.iv4 = int4(0, 0, 0, 0);
 
       val = next_token(data, cur_pos);
-      v.iv4.x = std::stoi(val);
+      LOAD_NUMBER(blk_strtoi, v, val, v.iv4.x);
 
       val = next_token(data, cur_pos);
       ok = ok && (val == ",");
       if (ok)
       {
         val = next_token(data, cur_pos);
-        v.iv4.y = std::stoi(val);
+        LOAD_NUMBER(blk_strtoi, v, val, v.iv4.y);
       }
 
       val = next_token(data, cur_pos);
@@ -638,7 +659,7 @@ bool read_value(const char *data, int &cur_pos, Block::Value &v, const Block &pa
       if (ok)
       {
         val = next_token(data, cur_pos);
-        v.iv4.z = std::stoi(val);
+        LOAD_NUMBER(blk_strtoi, v, val, v.iv4.z);
       }
 
       val = next_token(data, cur_pos);
@@ -646,7 +667,7 @@ bool read_value(const char *data, int &cur_pos, Block::Value &v, const Block &pa
       if (ok)
       {
         val = next_token(data, cur_pos);
-        v.iv4.w = std::stoi(val);
+        LOAD_NUMBER(blk_strtoi, v, val, v.iv4.w);
       }
       if (!ok)
       {
@@ -667,8 +688,8 @@ bool read_value(const char *data, int &cur_pos, Block::Value &v, const Block &pa
       while (cnt < 16 && ok)
       {
         val = next_token(data, cur_pos);
+        LOAD_NUMBER(std::strtod, v, val, mat[cnt]);
 
-        mat[cnt] = std::stof(val);
         if (cnt < 15)
         {
           val = next_token(data, cur_pos);
@@ -800,7 +821,7 @@ bool read_array(const char *data, int &cur_pos, Block::DataArray &a)
       else
       {
         val.type = Block::ValueType::DOUBLE;
-        val.d = std::stod(tok);
+        LOAD_NUMBER(std::strtod, val, tok, val.d);
       }
       if (a.values.empty())
         array_type = val.type;
