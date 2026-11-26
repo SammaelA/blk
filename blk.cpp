@@ -902,8 +902,8 @@ bool load_block_from_string(const std::string &str, Block &b)
 bool load_block_from_file(std::string path, Block &b)
 {
   b = Block();
-  std::fstream f(path);
-  std::stringstream iss;
+  std::ifstream f(path);
+  std::ostringstream iss;
   if (f.fail())
   {
     fprintf(stderr, "unable to load file %s", path.c_str());
