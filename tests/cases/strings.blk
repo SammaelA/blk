@@ -1,0 +1,6 @@
+{
+  esc:s = "tab\tnl\nquote\"bs\\"
+  hex:s = "\x41-\x42-"
+  oct:s = "\101-\102-"
+  url:s = "http://example.com//x"
+}

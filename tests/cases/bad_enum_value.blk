@@ -1,0 +1,2 @@
+// enum Mode has no value MEDIUM
+{ m:e_Mode = MEDIUM }

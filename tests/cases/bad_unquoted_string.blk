@@ -1,0 +1,2 @@
+// string without quotes
+{ s:s = hello }

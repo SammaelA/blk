@@ -1,0 +1,5 @@
+{
+  nums:arr = {1, 2.5, -3}
+  names:arr = {"a", "b c", ""}
+  empty:arr = {}
+}

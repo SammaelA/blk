@@ -1,0 +1,2 @@
+// error inside a nested block: p3 with 2 components
+{ outer { v:p3 = 1, 2 } }
