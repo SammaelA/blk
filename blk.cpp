@@ -1,4 +1,5 @@
 #include "blk.h"
+#include <charconv>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -1206,7 +1207,10 @@ std::string double_to_string(double val)
 {
   //buffer size is the same as in gcc-12 implementation of to_string
   char buffer[std::numeric_limits<double>::max_exponent10 + 20];
-  snprintf(buffer, sizeof(buffer), "%g", val);
+  auto res = std::to_chars(buffer, buffer + sizeof(buffer), val);
+  if (res.ec == std::errc())
+    return std::string(buffer, res.ptr);
+  snprintf(buffer, sizeof(buffer), "%.17g", val);
   return std::string(buffer);
 }
 
