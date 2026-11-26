@@ -1896,14 +1896,20 @@ Block::~Block()
 }
 Block &Block::operator=(Block &b)
 {
-  clear();
-  copy(&b);
+  if (this != &b)
+  {
+    clear();
+    copy(&b);
+  }
   return *this;
 }
 Block &Block::operator=(Block &&b)
 {
-  clear();
-  names = std::move(b.names);
-  values = std::move(b.values);
+  if (this != &b)
+  {
+    clear();
+    names = std::move(b.names);
+    values = std::move(b.values);
+  }
   return *this;
 }
