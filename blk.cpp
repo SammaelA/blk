@@ -737,6 +737,12 @@ bool read_value(const char *data, int &cur_pos, Block::Value &v, const Block &pa
           v.s = new std::string(s);
         }
       }
+      else
+      {
+        v.type = Block::ValueType::EMPTY;
+        fprintf(stderr, "line %d expected \" after \":s =\"", cur_line);
+        return false;
+      }
     }
     else if (type == "arr")
     {
