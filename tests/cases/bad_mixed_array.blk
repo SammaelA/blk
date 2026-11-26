@@ -1,0 +1,2 @@
+// arrays must have one element type
+{ a:arr = {1, "x"} }

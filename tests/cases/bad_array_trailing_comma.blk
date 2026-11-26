@@ -1,0 +1,2 @@
+// trailing comma (if this should be allowed instead, rename the file and add a .out.blk)
+{ a:arr = {"x", "y",} }

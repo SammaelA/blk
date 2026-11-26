@@ -1,0 +1,2 @@
+// enum type is not registered
+{ m:e_NoSuchEnum = FAST }

@@ -1,0 +1,19 @@
+// leading comment before the root block
+{
+  // every scalar type once
+  flag:b = true
+  off:b = false
+  count:i = -42 // trailing comment
+  big:u64 = 18446744073709551615
+  small:u = 7
+  ratio:r = 0.5
+  pos:p2 = 1, 2
+  dir:p3 = 0.5, -1, 2
+  color:p4 = 1, 0.25, 0, 1
+  size:i2 = 640, 480
+  idx:i3 = 1, 2, 3
+  rect:i4 = 0, 0, 10, 20
+  mode:e_Mode = SLOW
+  name:s = "hello world"
+  marker:tag
+}

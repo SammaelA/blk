@@ -1,0 +1,18 @@
+{
+base {
+a:i = 1
+b:s = "base"
+inner {
+x:r = 1
+}
+}
+derived {
+a:i = 1
+b:s = "derived"
+inner {
+x:r = 1
+y:r = 2
+}
+c:i = 3
+}
+}

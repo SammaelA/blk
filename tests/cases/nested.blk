@@ -1,0 +1,12 @@
+{
+  base {
+    a:i = 1
+    b:s = "base"
+    inner { x:r = 1 }
+  }
+  derived extends base {
+    b:s = "derived"
+    c:i = 3
+    inner { y:r = 2 }
+  }
+}
