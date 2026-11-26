@@ -1,8 +1,11 @@
 #include "blk.h"
 #include <charconv>
 #include <fstream>
-#include <iostream>
 #include <sstream>
+#include <cerrno>
+#include <cstdlib>
+#include <cstdio>
+#include <limits>
 #include <map>
 
 using LiteMath::cross;
@@ -37,14 +40,16 @@ struct EnumInfo
   std::vector<unsigned> values;
 };
 
-int MAX_ENUMS = 1024;
-std::vector<EnumInfo>& get_enum_info() {
-    static std::vector<EnumInfo> g_enum_info;
-    return g_enum_info;
+static constexpr int MAX_ENUMS = 1024;
+static std::vector<EnumInfo>& get_enum_info() 
+{
+  static std::vector<EnumInfo> g_enum_info;
+  return g_enum_info;
 }
-std::map<std::string, unsigned>& get_enum_info_by_name() {
-    static std::map<std::string, unsigned> g_enum_info_by_name;
-    return g_enum_info_by_name;
+static std::map<std::string, unsigned>& get_enum_info_by_name() 
+{
+  static std::map<std::string, unsigned> g_enum_info_by_name;
+  return g_enum_info_by_name;
 }
 
 void register_enum_info(const std::string &name, const std::vector<std::pair<std::string, unsigned>> &values)
@@ -117,7 +122,7 @@ BlkEnumLoader::BlkEnumLoader(const std::string &name, const std::vector<std::pai
   register_enum_info(name, values);
 }
 
-bool is_empty(const char c)
+static bool is_empty(const char c)
 {
   if (c == '\n')
     cur_line++;
@@ -148,18 +153,18 @@ bool is_empty(const char c)
     }
     else
     {
-      fprintf(stderr, "line %d hanging / found", cur_line);
+      fprintf(stderr, "line %d hanging / found\n", cur_line);
       in_comment_assume = false;
     }
   }
 
   return (c == ' ' || c == '\n' || c == '\t');
 }
-bool is_div(const char c)
+static bool is_div(const char c)
 {
   return (c == ',' || c == ';' || c == ':' || c == '=' || c == '{' || c == '}' || c == '\'' || c == '\"');
 }
-std::string next_token(const char *data, int &pos)
+static std::string next_token(const char *data, int &pos)
 {
   std::string res;
   if (!data || data[pos] == 0)
@@ -199,7 +204,7 @@ static const char *esc_chars = "abefnrtv\'\"\\?";
 static const char *esc_codes = "\a\b\e\f\n\r\t\v\'\"\\\?";
 
 //reading string, processing escape sequences
-std::string read_string(const char *data, int &cur_pos)
+static std::string read_string(const char *data, int &cur_pos)
 {
   enum class State
   {
@@ -257,7 +262,7 @@ std::string read_string(const char *data, int &cur_pos)
         if (!found)
         {
           s.push_back(data[cur_pos]);
-          fprintf(stderr, "line %d unknown escape sequence", cur_line);
+          fprintf(stderr, "line %d unknown escape sequence\n", cur_line);
         }
         state = State::NORMAL;
       }
@@ -310,7 +315,7 @@ std::string read_string(const char *data, int &cur_pos)
       }
       else
       {
-        fprintf(stderr, "line %d broken hex escape sequence", cur_line);
+        fprintf(stderr, "line %d broken hex escape sequence\n", cur_line);
         s.push_back('\\');
         s.push_back('x');
         state = State::NORMAL;
@@ -352,7 +357,7 @@ std::string read_string(const char *data, int &cur_pos)
 }
 
 // saves string with escape sequences and hex for unprintable characters
-std::string save_string(const std::string &s)
+static std::string save_string(const std::string &s)
 {
   const char *hex_chars = "0123456789ABCDEF";
   std::string res;
@@ -399,14 +404,14 @@ static uint64_t blk_strtou64(const char *base, char **end_ptr)
       (out) = load_fun(val.c_str(), &ptr); \
       if (errno != 0 || ptr == (val).data()) \
       { \
-        fprintf(stderr, "line %d token \"%s\" is not a valid number", cur_line, (val).c_str()); \
+        fprintf(stderr, "line %d token \"%s\" is not a valid number\n", cur_line, (val).c_str()); \
         (v).type = Block::ValueType::EMPTY; \
         return false; \
       }
 
-bool load_block(const char *data, int &cur_pos, Block &b, const Block &global_parent);
-bool read_array(const char *data, int &cur_pos, Block::DataArray &a);
-bool read_value(const char *data, int &cur_pos, Block::Value &v, const Block &parent, const Block &global_parent)
+static bool load_block(const char *data, int &cur_pos, Block &b, const Block &global_parent);
+static bool read_array(const char *data, int &cur_pos, Block::DataArray &a);
+static bool read_value(const char *data, int &cur_pos, Block::Value &v, const Block &parent, const Block &global_parent)
 {
   std::string token = next_token(data, cur_pos);
   //:<type> = <description> or { <block> }
@@ -420,14 +425,14 @@ bool read_value(const char *data, int &cur_pos, Block::Value &v, const Block &pa
       std::string next_tok = next_token(data, cur_pos);
       if (next_tok != "{")
       {
-        fprintf(stderr, "line %d expected { after extends <parent_block_name>", cur_line);
+        fprintf(stderr, "line %d expected { after extends <parent_block_name>\n", cur_line);
         v.type = Block::ValueType::EMPTY;
         return false;
       }
       block_to_extend = global_parent.get_block_rec(name);
       if (!block_to_extend)
       {
-        printf("Warning: block %s is set to be parent for extension, but was not found\n", name.c_str());
+        fprintf(stderr, "Warning: block %s is set to be parent for extension, but was not found\n", name.c_str());
       }
     }
     v.bl = new Block();
@@ -454,7 +459,7 @@ bool read_value(const char *data, int &cur_pos, Block::Value &v, const Block &pa
     std::string eq = next_token(data, cur_pos);
     if (eq != "=")
     {
-      fprintf(stderr, "line %d expected = after value type", cur_line);
+      fprintf(stderr, "line %d expected = after value type\n", cur_line);
       v.type = Block::ValueType::EMPTY;
       return false;
     }
@@ -502,7 +507,7 @@ bool read_value(const char *data, int &cur_pos, Block::Value &v, const Block &pa
       }
       if (!ok)
       {
-        fprintf(stderr, "line %d wrong description of vector", cur_line);
+        fprintf(stderr, "line %d wrong description of vector\n", cur_line);
         v.type = Block::ValueType::EMPTY;
         return false;
       }
@@ -534,7 +539,7 @@ bool read_value(const char *data, int &cur_pos, Block::Value &v, const Block &pa
       }
       if (!ok)
       {
-        fprintf(stderr, "line %d wrong description of vector", cur_line);
+        fprintf(stderr, "line %d wrong description of vector\n", cur_line);
         v.type = Block::ValueType::EMPTY;
         return false;
       }
@@ -574,7 +579,7 @@ bool read_value(const char *data, int &cur_pos, Block::Value &v, const Block &pa
       }
       if (!ok)
       {
-        fprintf(stderr, "line %d wrong description of vector", cur_line);
+        fprintf(stderr, "line %d wrong description of vector\n", cur_line);
         v.type = Block::ValueType::EMPTY;
         return false;
       }
@@ -599,7 +604,7 @@ bool read_value(const char *data, int &cur_pos, Block::Value &v, const Block &pa
       }
       if (!ok)
       {
-        fprintf(stderr, "line %d wrong description of integer vector", cur_line);
+        fprintf(stderr, "line %d wrong description of integer vector\n", cur_line);
         v.type = Block::ValueType::EMPTY;
         return false;
       }
@@ -631,7 +636,7 @@ bool read_value(const char *data, int &cur_pos, Block::Value &v, const Block &pa
       }
       if (!ok)
       {
-        fprintf(stderr, "line %d wrong description of integer vector", cur_line);
+        fprintf(stderr, "line %d wrong description of integer vector\n", cur_line);
         v.type = Block::ValueType::EMPTY;
         return false;
       }
@@ -671,7 +676,7 @@ bool read_value(const char *data, int &cur_pos, Block::Value &v, const Block &pa
       }
       if (!ok)
       {
-        fprintf(stderr, "line %d wrong description of integer vector", cur_line);
+        fprintf(stderr, "line %d wrong description of integer vector\n", cur_line);
         v.type = Block::ValueType::EMPTY;
         return false;
       }
@@ -706,7 +711,7 @@ bool read_value(const char *data, int &cur_pos, Block::Value &v, const Block &pa
       }
       else
       {
-        fprintf(stderr, "line %d wrong description of matrix", cur_line);
+        fprintf(stderr, "line %d wrong description of matrix\n", cur_line);
         v.type = Block::ValueType::EMPTY;
         return false;
       }
@@ -748,7 +753,7 @@ bool read_value(const char *data, int &cur_pos, Block::Value &v, const Block &pa
         if (data[cur_pos] == 0)
         {
           v.type = Block::ValueType::EMPTY;
-          fprintf(stderr, "line %d expected \" at the end of a string", cur_line);
+          fprintf(stderr, "line %d expected \" at the end of a string\n", cur_line);
           return false;
         }
         else if (data[cur_pos] == '\"')
@@ -761,7 +766,7 @@ bool read_value(const char *data, int &cur_pos, Block::Value &v, const Block &pa
       else
       {
         v.type = Block::ValueType::EMPTY;
-        fprintf(stderr, "line %d expected \" after \":s =\"", cur_line);
+        fprintf(stderr, "line %d expected \" after \":s =\"\n", cur_line);
         return false;
       }
     }
@@ -776,12 +781,12 @@ bool read_value(const char *data, int &cur_pos, Block::Value &v, const Block &pa
   }
   else
   {
-    fprintf(stderr, "line %d expected : or { after value/block name, but %s got", cur_line, token.c_str());
+    fprintf(stderr, "line %d expected : or { after value/block name, but %s got\n", cur_line, token.c_str());
     v.type = Block::ValueType::EMPTY;
     return false;
   }
 }
-bool read_array(const char *data, int &cur_pos, Block::DataArray &a)
+static bool read_array(const char *data, int &cur_pos, Block::DataArray &a)
 {
   std::string token = next_token(data, cur_pos);
   //{ <value>, <value>, ... <value>}
@@ -801,14 +806,14 @@ bool read_array(const char *data, int &cur_pos, Block::DataArray &a)
         return true;
       }
       if (tok.empty())
-        fprintf(stderr, "line %d empty token in array", cur_line);
+        fprintf(stderr, "line %d empty token in array\n", cur_line);
       else if (tok == "\"")
       {
         std::string s = read_string(data, cur_pos);
         if (data[cur_pos] == 0)
         {
           val.type = Block::ValueType::EMPTY;
-          fprintf(stderr, "line %d expected \" at the end of a string in string array", cur_line);
+          fprintf(stderr, "line %d expected \" at the end of a string in string array\n", cur_line);
           return false;
         }
         else if (data[cur_pos] == '\"')
@@ -827,7 +832,7 @@ bool read_array(const char *data, int &cur_pos, Block::DataArray &a)
         array_type = val.type;
       else if (array_type != val.type)
       {
-        fprintf(stderr, "line %d array has values of diffrent types", cur_line);
+        fprintf(stderr, "line %d array has values of diffrent types\n", cur_line);
         val.clear();
         return false;
       }
@@ -841,16 +846,16 @@ bool read_array(const char *data, int &cur_pos, Block::DataArray &a)
         return true;
       }
     }
-    fprintf(stderr, "line %d expected } at the end of array", cur_line);
+    fprintf(stderr, "line %d expected } at the end of array\n", cur_line);
     return false;
   }
   else
   {
-    fprintf(stderr, "line %d expected { at the start of array", cur_line);
+    fprintf(stderr, "line %d expected { at the start of array\n", cur_line);
     return false;
   }
 }
-bool load_block(const char *data, int &cur_pos, Block &b, const Block &global_parent)
+static bool load_block(const char *data, int &cur_pos, Block &b, const Block &global_parent)
 {
   bool correct = true;
   while (correct)
@@ -864,7 +869,7 @@ bool load_block(const char *data, int &cur_pos, Block &b, const Block &global_pa
     else if (token == "")
     {
       // end of file
-      fprintf(stderr, "line %d block loader reached end of file, } expected", cur_line);
+      fprintf(stderr, "line %d block loader reached end of file, } expected\n", cur_line);
       return false;
     }
     else if (token == "#include")
@@ -873,7 +878,7 @@ bool load_block(const char *data, int &cur_pos, Block &b, const Block &global_pa
       token = next_token(data, cur_pos);
       if (token != "\"")
       {
-        fprintf(stderr, "line %d expected \" after #include", cur_line);
+        fprintf(stderr, "line %d expected \" after #include\n", cur_line);
         return false;
       }
       std::string path = read_string(data, cur_pos);
@@ -900,7 +905,7 @@ bool load_block(const char *data, int &cur_pos, Block &b, const Block &global_pa
       }
       else
       {
-        printf("Warning: failed to load block %s required by #include command", path.c_str());
+        fprintf(stderr, "Warning: failed to load block %s required by #include command\n", path.c_str());
       }
     }
     else
@@ -930,14 +935,14 @@ bool load_block_from_string(const std::string &str, Block &b)
   return false;
 }
 
-bool load_block_from_file(std::string path, Block &b)
+bool load_block_from_file(const std::string &path, Block &b)
 {
   b = Block();
   std::ifstream f(path);
   std::ostringstream iss;
   if (f.fail())
   {
-    fprintf(stderr, "unable to load file %s", path.c_str());
+    fprintf(stderr, "unable to load file %s\n", path.c_str());
     return false;
   }
   iss << f.rdbuf();
@@ -972,7 +977,7 @@ Block::ValueType Block::get_type(const std::string &name) const
   return get_type(get_id(name));
 }
 
-int Block::get_bool(int id, bool base_val) const
+bool Block::get_bool(int id, bool base_val) const
 {
   return (id >= 0 && id < size() && values[id].type == Block::ValueType::BOOL) ? values[id].b : base_val;
 }
@@ -1020,7 +1025,7 @@ unsigned Block::get_enum(int id, unsigned base_val) const
 {
   return (id >= 0 && id < size() && values[id].type == Block::ValueType::ENUM) ? get_enum_info()[values[id].ev.type_id].values[values[id].ev.val_id] : base_val;
 }
-std::string Block::get_string(int id, std::string base_val) const
+std::string Block::get_string(int id, const std::string &base_val) const
 {
   return (id >= 0 && id < size() && values[id].type == Block::ValueType::STRING && values[id].s) ? *(values[id].s) : base_val;
 }
@@ -1137,91 +1142,91 @@ bool Block::get_arr(int id, std::vector<std::string> &_values, bool replace) con
   return false;
 }
 
-int Block::get_bool(const std::string name, bool base_val) const
+bool Block::get_bool(const std::string &name, bool base_val) const
 {
   return get_bool(get_id(name), base_val);
 }
-int Block::get_int(const std::string name, int base_val) const
+int Block::get_int(const std::string &name, int base_val) const
 {
   return get_int(get_id(name), base_val);
 }
-uint64_t Block::get_uint64(const std::string name, uint64_t base_val) const
+uint64_t Block::get_uint64(const std::string &name, uint64_t base_val) const
 {
   return get_uint64(get_id(name), base_val);
 }
-double Block::get_double(const std::string name, double base_val) const
+double Block::get_double(const std::string &name, double base_val) const
 {
   return get_double(get_id(name), base_val);
 }
-float2 Block::get_vec2(const std::string name, float2 base_val) const
+float2 Block::get_vec2(const std::string &name, float2 base_val) const
 {
   return get_vec2(get_id(name), base_val);
 }
-float3 Block::get_vec3(const std::string name, float3 base_val) const
+float3 Block::get_vec3(const std::string &name, float3 base_val) const
 {
   return get_vec3(get_id(name), base_val);
 }
-float4 Block::get_vec4(const std::string name, float4 base_val) const
+float4 Block::get_vec4(const std::string &name, float4 base_val) const
 {
   return get_vec4(get_id(name), base_val);
 }
-int2 Block::get_ivec2(const std::string name, int2 base_val) const
+int2 Block::get_ivec2(const std::string &name, int2 base_val) const
 {
   return get_ivec2(get_id(name), base_val);
 }
-int3 Block::get_ivec3(const std::string name, int3 base_val) const
+int3 Block::get_ivec3(const std::string &name, int3 base_val) const
 {
   return get_ivec3(get_id(name), base_val);
 }
-int4 Block::get_ivec4(const std::string name, int4 base_val) const
+int4 Block::get_ivec4(const std::string &name, int4 base_val) const
 {
   return get_ivec4(get_id(name), base_val);
 }
-float4x4 Block::get_mat4(const std::string name, float4x4 base_val) const
+float4x4 Block::get_mat4(const std::string &name, float4x4 base_val) const
 {
   return get_mat4(get_id(name), base_val);
 }
-unsigned Block::get_enum(const std::string name, unsigned base_val) const
+unsigned Block::get_enum(const std::string &name, unsigned base_val) const
 {
   return get_enum(get_id(name), base_val);
 }
-std::string Block::get_string(const std::string name, std::string base_val) const
+std::string Block::get_string(const std::string &name, const std::string &base_val) const
 {
   return get_string(get_id(name), base_val);
 }
-Block *Block::get_block(std::string name, Block *base_val) const
+Block *Block::get_block(const std::string &name, Block *base_val) const
 {
   return get_block(get_id(name), base_val);
 }
-bool Block::get_arr(const std::string name, std::vector<double> &_values, bool replace) const
+bool Block::get_arr(const std::string &name, std::vector<double> &_values, bool replace) const
 {
   return get_arr(get_id(name), _values, replace);
 }
-bool Block::get_arr(const std::string name, std::vector<float> &_values, bool replace) const
+bool Block::get_arr(const std::string &name, std::vector<float> &_values, bool replace) const
 {
   return get_arr(get_id(name), _values, replace);
 }
-bool Block::get_arr(const std::string name, std::vector<int> &_values, bool replace) const
+bool Block::get_arr(const std::string &name, std::vector<int> &_values, bool replace) const
 {
   return get_arr(get_id(name), _values, replace);
 }
-bool Block::get_arr(const std::string name, std::vector<unsigned> &_values, bool replace) const
+bool Block::get_arr(const std::string &name, std::vector<unsigned> &_values, bool replace) const
 {
   return get_arr(get_id(name), _values, replace);
 }
-bool Block::get_arr(const std::string name, std::vector<short> &_values, bool replace) const
+bool Block::get_arr(const std::string &name, std::vector<short> &_values, bool replace) const
 {
   return get_arr(get_id(name), _values, replace);
 }
-bool Block::get_arr(const std::string name, std::vector<unsigned short> &_values, bool replace) const
+bool Block::get_arr(const std::string &name, std::vector<unsigned short> &_values, bool replace) const
 {
   return get_arr(get_id(name), _values, replace);
 }
-bool Block::get_arr(const std::string name, std::vector<std::string> &_values, bool replace) const
+bool Block::get_arr(const std::string &name, std::vector<std::string> &_values, bool replace) const
 {
   return get_arr(get_id(name), _values, replace);
 }
-Block *Block::get_block_rec(std::string name, Block *base_val) const
+Block *Block::get_block_rec(const std::string &name, Block *base_val) const
 {
   auto it = name.find_first_of('.');
   if (it == std::string::npos)
@@ -1233,7 +1238,7 @@ Block *Block::get_block_rec(std::string name, Block *base_val) const
     return base_val;
 }
 
-std::string double_to_string(double val)
+static std::string double_to_string(double val)
 {
   //buffer size is the same as in gcc-12 implementation of to_string
   char buffer[std::numeric_limits<double>::max_exponent10 + 20];
@@ -1244,8 +1249,8 @@ std::string double_to_string(double val)
   return std::string(buffer);
 }
 
-void save_value(std::string &str, Block::Value &v);
-void save_block(std::string &str, Block &b)
+static void save_value(std::string &str, const Block::Value &v);
+static void save_block(std::string &str, const Block &b)
 {
   str += "{\n";
   for (int i = 0; i < b.size(); i++)
@@ -1256,7 +1261,7 @@ void save_block(std::string &str, Block &b)
   }
   str += "}";
 }
-void save_arr(std::string &str, Block::DataArray &a)
+static void save_arr(std::string &str, Block::DataArray &a)
 {
   str += "{ ";
   if (a.type == Block::ValueType::DOUBLE)
@@ -1282,7 +1287,7 @@ void save_arr(std::string &str, Block::DataArray &a)
   }
   str += " }";
 }
-void save_value(std::string &str, Block::Value &v)
+static void save_value(std::string &str, const Block::Value &v)
 {
   if (v.type == Block::ValueType::EMPTY)
   {
@@ -1376,12 +1381,12 @@ void save_value(std::string &str, Block::Value &v)
   }
 }
 
-void save_block_to_string(std::string &str, Block &b)
+void save_block_to_string(std::string &str, const Block &b)
 {
   save_block(str, b);
 }
 
-void save_block_to_file(std::string path, Block &b)
+void save_block_to_file(const std::string &path, const Block &b)
 {
   std::string input;
 
@@ -1428,84 +1433,84 @@ bool Block::has_tag(const std::string &name) const
   return id >= 0 && (get_type(id) == Block::ValueType::EMPTY);
 }
 
-void Block::add_bool(const std::string name, bool base_val)
+void Block::add_bool(const std::string &name, bool base_val)
 {
   Block::Value val;
   val.type = Block::ValueType::BOOL;
   val.b = base_val;
   add_value(name, val);
 }
-void Block::add_int(const std::string name, int base_val)
+void Block::add_int(const std::string &name, int base_val)
 {
   Block::Value val;
   val.type = Block::ValueType::INT;
   val.i = base_val;
   add_value(name, val);
 }
-void Block::add_uint64(const std::string name, uint64_t base_val)
+void Block::add_uint64(const std::string &name, uint64_t base_val)
 {
   Block::Value val;
   val.type = Block::ValueType::UINT64;
   val.u = base_val;
   add_value(name, val);
 }
-void Block::add_double(const std::string name, double base_val)
+void Block::add_double(const std::string &name, double base_val)
 {
   Block::Value val;
   val.type = Block::ValueType::DOUBLE;
   val.d = base_val;
   add_value(name, val);
 }
-void Block::add_vec2(const std::string name, float2 base_val)
+void Block::add_vec2(const std::string &name, float2 base_val)
 {
   Block::Value val;
   val.type = Block::ValueType::VEC2;
   val.v2 = base_val;
   add_value(name, val);
 }
-void Block::add_vec3(const std::string name, float3 base_val)
+void Block::add_vec3(const std::string &name, float3 base_val)
 {
   Block::Value val;
   val.type = Block::ValueType::VEC3;
   val.v3 = base_val;
   add_value(name, val);
 }
-void Block::add_vec4(const std::string name, float4 base_val)
+void Block::add_vec4(const std::string &name, float4 base_val)
 {
   Block::Value val;
   val.type = Block::ValueType::VEC4;
   val.v4 = base_val;
   add_value(name, val);
 }
-void Block::add_ivec2(const std::string name, int2 base_val)
+void Block::add_ivec2(const std::string &name, int2 base_val)
 {
   Block::Value val;
   val.type = Block::ValueType::IVEC2;
   val.iv2 = base_val;
   add_value(name, val);
 }
-void Block::add_ivec3(const std::string name, int3 base_val)
+void Block::add_ivec3(const std::string &name, int3 base_val)
 {
   Block::Value val;
   val.type = Block::ValueType::IVEC3;
   val.iv3 = base_val;
   add_value(name, val);
 }
-void Block::add_ivec4(const std::string name, int4 base_val)
+void Block::add_ivec4(const std::string &name, int4 base_val)
 {
   Block::Value val;
   val.type = Block::ValueType::IVEC4;
   val.iv4 = base_val;
   add_value(name, val);
 }
-void Block::add_mat4(const std::string name, float4x4 base_val)
+void Block::add_mat4(const std::string &name, float4x4 base_val)
 {
   Block::Value val;
   val.type = Block::ValueType::MAT4;
   val.m4 = base_val;
   add_value(name, val);
 }
-void Block::add_enum(const std::string name, const std::string &type_name, unsigned base_val)
+void Block::add_enum(const std::string &name, const std::string &type_name, unsigned base_val)
 {
   auto info_it = get_enum_info_by_name().find(type_name);
   if (info_it == get_enum_info_by_name().end())
@@ -1525,14 +1530,14 @@ void Block::add_enum(const std::string name, const std::string &type_name, unsig
   val.ev.val_id = val_it->second;
   add_value(name, val);
 }
-void Block::add_string(const std::string name, std::string base_val)
+void Block::add_string(const std::string &name, const std::string &base_val)
 {
   Block::Value val;
   val.type = Block::ValueType::STRING;
   val.s = new std::string(base_val);
   add_value(name, val);
 }
-void Block::add_block(const std::string name, Block *bl)
+void Block::add_block(const std::string &name, const Block *bl)
 {
   Block::Value val;
   val.type = Block::ValueType::BLOCK;
@@ -1542,13 +1547,13 @@ void Block::add_block(const std::string name, Block *bl)
     val.bl->copy(bl);
   add_value(name, val);
 }
-void Block::add_arr(const std::string name, std::vector<double> &_values)
+void Block::add_arr(const std::string &name, const std::vector<double> &_values)
 {
   Block::Value val;
   val.type = Block::ValueType::ARRAY;
   val.a = new Block::DataArray();
   val.a->type = Block::ValueType::DOUBLE;
-  for (double &d : _values)
+  for (const double &d : _values)
   {
     Block::Value av;
     av.type = Block::ValueType::DOUBLE;
@@ -1557,13 +1562,13 @@ void Block::add_arr(const std::string name, std::vector<double> &_values)
   }
   add_value(name, val);
 }
-void Block::add_arr(const std::string name, std::vector<float> &_values)
+void Block::add_arr(const std::string &name, const std::vector<float> &_values)
 {
   Block::Value val;
   val.type = Block::ValueType::ARRAY;
   val.a = new Block::DataArray();
   val.a->type = Block::ValueType::DOUBLE;
-  for (float &d : _values)
+  for (const float &d : _values)
   {
     Block::Value av;
     av.type = Block::ValueType::DOUBLE;
@@ -1572,13 +1577,13 @@ void Block::add_arr(const std::string name, std::vector<float> &_values)
   }
   add_value(name, val);
 }
-void Block::add_arr(const std::string name, std::vector<int> &_values)
+void Block::add_arr(const std::string &name, const std::vector<int> &_values)
 {
   Block::Value val;
   val.type = Block::ValueType::ARRAY;
   val.a = new Block::DataArray();
   val.a->type = Block::ValueType::DOUBLE;
-  for (int &d : _values)
+  for (const int &d : _values)
   {
     Block::Value av;
     av.type = Block::ValueType::DOUBLE;
@@ -1587,13 +1592,13 @@ void Block::add_arr(const std::string name, std::vector<int> &_values)
   }
   add_value(name, val);
 }
-void Block::add_arr(const std::string name, std::vector<unsigned> &_values)
+void Block::add_arr(const std::string &name, const std::vector<unsigned> &_values)
 {
   Block::Value val;
   val.type = Block::ValueType::ARRAY;
   val.a = new Block::DataArray();
   val.a->type = Block::ValueType::DOUBLE;
-  for (unsigned &d : _values)
+  for (const unsigned &d : _values)
   {
     Block::Value av;
     av.type = Block::ValueType::DOUBLE;
@@ -1602,13 +1607,13 @@ void Block::add_arr(const std::string name, std::vector<unsigned> &_values)
   }
   add_value(name, val);
 }
-void Block::add_arr(const std::string name, std::vector<short> &_values)
+void Block::add_arr(const std::string &name, const std::vector<short> &_values)
 {
   Block::Value val;
   val.type = Block::ValueType::ARRAY;
   val.a = new Block::DataArray();
   val.a->type = Block::ValueType::DOUBLE;
-  for (short &d : _values)
+  for (const short &d : _values)
   {
     Block::Value av;
     av.type = Block::ValueType::DOUBLE;
@@ -1617,13 +1622,13 @@ void Block::add_arr(const std::string name, std::vector<short> &_values)
   }
   add_value(name, val);
 }
-void Block::add_arr(const std::string name, std::vector<unsigned short> &_values)
+void Block::add_arr(const std::string &name, const std::vector<unsigned short> &_values)
 {
   Block::Value val;
   val.type = Block::ValueType::ARRAY;
   val.a = new Block::DataArray();
   val.a->type = Block::ValueType::DOUBLE;
-  for (unsigned short &d : _values)
+  for (const unsigned short &d : _values)
   {
     Block::Value av;
     av.type = Block::ValueType::DOUBLE;
@@ -1632,13 +1637,13 @@ void Block::add_arr(const std::string name, std::vector<unsigned short> &_values
   }
   add_value(name, val);
 }
-void Block::add_arr(const std::string name, std::vector<std::string> &_values)
+void Block::add_arr(const std::string &name, const std::vector<std::string> &_values)
 {
   Block::Value val;
   val.type = Block::ValueType::ARRAY;
   val.a = new Block::DataArray();
   val.a->type = Block::ValueType::STRING;
-  for (std::string &str : _values)
+  for (const std::string &str : _values)
   {
     Block::Value av;
     av.type = Block::ValueType::STRING;
@@ -1648,95 +1653,95 @@ void Block::add_arr(const std::string name, std::vector<std::string> &_values)
   add_value(name, val);
 }
 
-void Block::set_bool(const std::string name, bool base_val)
+void Block::set_bool(const std::string &name, bool base_val)
 {
   Block::Value val;
   val.type = Block::ValueType::BOOL;
   val.b = base_val;
   set_value(name, val);
 }
-void Block::set_int(const std::string name, int base_val)
+void Block::set_int(const std::string &name, int base_val)
 {
   Block::Value val;
   val.type = Block::ValueType::INT;
   val.i = base_val;
   set_value(name, val);
 }
-void Block::set_uint64(const std::string name, uint64_t base_val)
+void Block::set_uint64(const std::string &name, uint64_t base_val)
 {
   Block::Value val;
   val.type = Block::ValueType::UINT64;
   val.u = base_val;
   set_value(name, val);
 }
-void Block::set_double(const std::string name, double base_val)
+void Block::set_double(const std::string &name, double base_val)
 {
   Block::Value val;
   val.type = Block::ValueType::DOUBLE;
   val.d = base_val;
   set_value(name, val);
 }
-void Block::set_vec2(const std::string name, float2 base_val)
+void Block::set_vec2(const std::string &name, float2 base_val)
 {
   Block::Value val;
   val.type = Block::ValueType::VEC2;
   val.v2 = base_val;
   set_value(name, val);
 }
-void Block::set_vec3(const std::string name, float3 base_val)
+void Block::set_vec3(const std::string &name, float3 base_val)
 {
   Block::Value val;
   val.type = Block::ValueType::VEC3;
   val.v3 = base_val;
   set_value(name, val);
 }
-void Block::set_vec4(const std::string name, float4 base_val)
+void Block::set_vec4(const std::string &name, float4 base_val)
 {
   Block::Value val;
   val.type = Block::ValueType::VEC4;
   val.v4 = base_val;
   set_value(name, val);
 }
-void Block::set_ivec2(const std::string name, int2 base_val)
+void Block::set_ivec2(const std::string &name, int2 base_val)
 {
   Block::Value val;
   val.type = Block::ValueType::IVEC2;
   val.iv2 = base_val;
   set_value(name, val);
 }
-void Block::set_ivec3(const std::string name, int3 base_val)
+void Block::set_ivec3(const std::string &name, int3 base_val)
 {
   Block::Value val;
   val.type = Block::ValueType::IVEC3;
   val.iv3 = base_val;
   set_value(name, val);
 }
-void Block::set_ivec4(const std::string name, int4 base_val)
+void Block::set_ivec4(const std::string &name, int4 base_val)
 {
   Block::Value val;
   val.type = Block::ValueType::IVEC4;
   val.iv4 = base_val;
   set_value(name, val);
 }
-void Block::set_mat4(const std::string name, float4x4 base_val)
+void Block::set_mat4(const std::string &name, float4x4 base_val)
 {
   Block::Value val;
   val.type = Block::ValueType::MAT4;
   val.m4 = base_val;
   set_value(name, val);
 }
-void Block::set_enum(const std::string name, const std::string &type_name, unsigned base_val)
+void Block::set_enum(const std::string &name, const std::string &type_name, unsigned base_val)
 {
   auto info_it = get_enum_info_by_name().find(type_name);
   if (info_it == get_enum_info_by_name().end())
   {
-    fprintf(stderr, "[add_enum::ERROR] enum %s is not registered\n", type_name.c_str());
+    fprintf(stderr, "[set_enum::ERROR] enum %s is not registered\n", type_name.c_str());
     return;
   }
   auto val_it = get_enum_info()[info_it->second].id_by_val.find(base_val);
   if (val_it == get_enum_info()[info_it->second].id_by_val.end())
   {
-    fprintf(stderr, "[add_enum::ERROR] enum %s has no value %u\n", type_name.c_str(), base_val);
+    fprintf(stderr, "[set_enum::ERROR] enum %s has no value %u\n", type_name.c_str(), base_val);
     return;
   }
   Block::Value val;
@@ -1745,14 +1750,14 @@ void Block::set_enum(const std::string name, const std::string &type_name, unsig
   val.ev.val_id = val_it->second;
   set_value(name, val);
 }
-void Block::set_string(const std::string name, std::string base_val)
+void Block::set_string(const std::string &name, const std::string &base_val)
 {
   Block::Value val;
   val.type = Block::ValueType::STRING;
   val.s = new std::string(base_val);
   set_value(name, val);
 }
-void Block::set_block(const std::string name, const Block *bl)
+void Block::set_block(const std::string &name, const Block *bl)
 {
   Block::Value val;
   val.type = Block::ValueType::BLOCK;
@@ -1760,7 +1765,7 @@ void Block::set_block(const std::string name, const Block *bl)
   val.bl->copy(bl);
   set_value(name, val);
 }
-void Block::set_arr(const std::string name, const std::vector<double> &_values)
+void Block::set_arr(const std::string &name, const std::vector<double> &_values)
 {
   Block::Value val;
   val.type = Block::ValueType::ARRAY;
@@ -1775,7 +1780,7 @@ void Block::set_arr(const std::string name, const std::vector<double> &_values)
   }
   set_value(name, val);
 }
-void Block::set_arr(const std::string name, const std::vector<float> &_values)
+void Block::set_arr(const std::string &name, const std::vector<float> &_values)
 {
   Block::Value val;
   val.type = Block::ValueType::ARRAY;
@@ -1790,7 +1795,7 @@ void Block::set_arr(const std::string name, const std::vector<float> &_values)
   }
   set_value(name, val);
 }
-void Block::set_arr(const std::string name, const std::vector<int> &_values)
+void Block::set_arr(const std::string &name, const std::vector<int> &_values)
 {
   Block::Value val;
   val.type = Block::ValueType::ARRAY;
@@ -1805,7 +1810,7 @@ void Block::set_arr(const std::string name, const std::vector<int> &_values)
   }
   set_value(name, val);
 }
-void Block::set_arr(const std::string name, const std::vector<unsigned> &_values)
+void Block::set_arr(const std::string &name, const std::vector<unsigned> &_values)
 {
   Block::Value val;
   val.type = Block::ValueType::ARRAY;
@@ -1820,7 +1825,7 @@ void Block::set_arr(const std::string name, const std::vector<unsigned> &_values
   }
   set_value(name, val);
 }
-void Block::set_arr(const std::string name, const std::vector<short> &_values)
+void Block::set_arr(const std::string &name, const std::vector<short> &_values)
 {
   Block::Value val;
   val.type = Block::ValueType::ARRAY;
@@ -1835,7 +1840,7 @@ void Block::set_arr(const std::string name, const std::vector<short> &_values)
   }
   set_value(name, val);
 }
-void Block::set_arr(const std::string name, const std::vector<unsigned short> &_values)
+void Block::set_arr(const std::string &name, const std::vector<unsigned short> &_values)
 {
   Block::Value val;
   val.type = Block::ValueType::ARRAY;
@@ -1850,7 +1855,7 @@ void Block::set_arr(const std::string name, const std::vector<unsigned short> &_
   }
   set_value(name, val);
 }
-void Block::set_arr(const std::string name, const std::vector<std::string> &_values)
+void Block::set_arr(const std::string &name, const std::vector<std::string> &_values)
 {
   Block::Value val;
   val.type = Block::ValueType::ARRAY;
@@ -1887,7 +1892,7 @@ void Block::set_value(const std::string &name, const Block::Value &value)
     add_value(name, value);
 }
 
-void Block::add_detalization(Block &det)
+void Block::add_detalization(const Block &det)
 {
   for (int i = 0; i < det.size(); i++)
   {
@@ -1907,7 +1912,6 @@ void Block::add_detalization(Block &det)
       }
       else
         values[id].copy(det.values[i]);
-      // fprintf(stderr, "detalization added %s %d %d",det.get_name(i).c_str(),values[id].bl, det.values[i].bl);
     }
   }
 }

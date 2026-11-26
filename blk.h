@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <string>
+#include <cstdint>
 #include "LiteMath/LiteMath.h"
 
 using LiteMath::float2;
@@ -192,7 +193,7 @@ struct Block
   ValueType get_type(int id) const;
   ValueType get_type(const std::string &name) const;
 
-  int get_bool(int id, bool base_val = false) const;
+  bool get_bool(int id, bool base_val = false) const;
   int get_int(int id, int base_val = 0) const;
   uint64_t get_uint64(int id, uint64_t base_val = 0) const;
   double get_double(int id, double base_val = 0) const;
@@ -204,7 +205,7 @@ struct Block
   int4 get_ivec4(int id, int4 base_val = int4(0, 0, 0, 0)) const;
   float4x4 get_mat4(int id, float4x4 base_val = float4x4()) const;
   unsigned get_enum(int id, unsigned base_val = 0) const;
-  std::string get_string(int id, std::string base_val = "") const;
+  std::string get_string(int id, const std::string &base_val = "") const;
   Block *get_block(int id, Block *base_val = nullptr) const;
   bool get_arr(int id, std::vector<double> &values, bool replace = false) const;
   bool get_arr(int id, std::vector<float> &values, bool replace = false) const;
@@ -214,87 +215,86 @@ struct Block
   bool get_arr(int id, std::vector<unsigned short> &values, bool replace = false) const;
   bool get_arr(int id, std::vector<std::string> &values, bool replace = false) const;
 
-  int get_bool(const std::string name, bool base_val = false) const;
-  int get_int(const std::string name, int base_val = 0) const;
-  uint64_t get_uint64(const std::string name, uint64_t base_val = 0) const;
-  double get_double(const std::string name, double base_val = 0) const;
-  float2 get_vec2(const std::string name, float2 base_val = float2(0, 0)) const;
-  float3 get_vec3(const std::string name, float3 base_val = float3(0, 0, 0)) const;
-  float4 get_vec4(const std::string name, float4 base_val = float4(0, 0, 0, 0)) const;
-  int2 get_ivec2(const std::string name, int2 base_val = int2(0, 0)) const;
-  int3 get_ivec3(const std::string name, int3 base_val = int3(0, 0, 0)) const;
-  int4 get_ivec4(const std::string name, int4 base_val = int4(0, 0, 0, 0)) const;
-  float4x4 get_mat4(const std::string name, float4x4 base_val = float4x4()) const;
-  unsigned get_enum(const std::string name, unsigned base_val = 0) const;
-  std::string get_string(const std::string name, std::string base_val = "") const;
-  Block *get_block(std::string name, Block *base_val = nullptr) const;
-  Block *get_block_rec(std::string name, Block *base_val = nullptr) const; // can find blocks in sub-blocks, e.g "Block1.Block2.Block3"
-  bool get_arr(const std::string name, std::vector<double> &values, bool replace = false) const;
-  bool get_arr(const std::string name, std::vector<float> &values, bool replace = false) const;
-  bool get_arr(const std::string name, std::vector<int> &values, bool replace = false) const;
-  bool get_arr(const std::string name, std::vector<unsigned> &values, bool replace = false) const;
-  bool get_arr(const std::string name, std::vector<short> &values, bool replace = false) const;
-  bool get_arr(const std::string name, std::vector<unsigned short> &values, bool replace = false) const;
-  bool get_arr(const std::string name, std::vector<std::string> &values, bool replace = false) const;
+  bool get_bool(const std::string &name, bool base_val = false) const;
+  int get_int(const std::string &name, int base_val = 0) const;
+  uint64_t get_uint64(const std::string &name, uint64_t base_val = 0) const;
+  double get_double(const std::string &name, double base_val = 0) const;
+  float2 get_vec2(const std::string &name, float2 base_val = float2(0, 0)) const;
+  float3 get_vec3(const std::string &name, float3 base_val = float3(0, 0, 0)) const;
+  float4 get_vec4(const std::string &name, float4 base_val = float4(0, 0, 0, 0)) const;
+  int2 get_ivec2(const std::string &name, int2 base_val = int2(0, 0)) const;
+  int3 get_ivec3(const std::string &name, int3 base_val = int3(0, 0, 0)) const;
+  int4 get_ivec4(const std::string &name, int4 base_val = int4(0, 0, 0, 0)) const;
+  float4x4 get_mat4(const std::string &name, float4x4 base_val = float4x4()) const;
+  unsigned get_enum(const std::string &name, unsigned base_val = 0) const;
+  std::string get_string(const std::string &name, const std::string &base_val = "") const;
+  Block *get_block(const std::string &name, Block *base_val = nullptr) const;
+  Block *get_block_rec(const std::string &name, Block *base_val = nullptr) const; // can find blocks in sub-blocks, e.g "Block1.Block2.Block3"
+  bool get_arr(const std::string &name, std::vector<double> &values, bool replace = false) const;
+  bool get_arr(const std::string &name, std::vector<float> &values, bool replace = false) const;
+  bool get_arr(const std::string &name, std::vector<int> &values, bool replace = false) const;
+  bool get_arr(const std::string &name, std::vector<unsigned> &values, bool replace = false) const;
+  bool get_arr(const std::string &name, std::vector<short> &values, bool replace = false) const;
+  bool get_arr(const std::string &name, std::vector<unsigned short> &values, bool replace = false) const;
+  bool get_arr(const std::string &name, std::vector<std::string> &values, bool replace = false) const;
 
-  void add_bool(const std::string name, bool base_val = false);
-  void add_int(const std::string name, int base_val = 0);
-  void add_uint64(const std::string name, uint64_t base_val = 0);
-  void add_double(const std::string name, double base_val = 0);
-  void add_vec2(const std::string name, float2 base_val = float2(0, 0));
-  void add_vec3(const std::string name, float3 base_val = float3(0, 0, 0));
-  void add_vec4(const std::string name, float4 base_val = float4(0, 0, 0, 0));
-  void add_ivec2(const std::string name, int2 base_val = int2(0, 0));
-  void add_ivec3(const std::string name, int3 base_val = int3(0, 0, 0));
-  void add_ivec4(const std::string name, int4 base_val = int4(0, 0, 0, 0));
-  void add_mat4(const std::string name, float4x4 base_val = float4x4());
-  void add_enum(const std::string name, const std::string &type_name, unsigned base_val = 0);
-  void add_string(const std::string name, std::string base_val = "");
-  void add_block(const std::string name, Block *bl = nullptr);
-  void add_arr(const std::string name, std::vector<double> &values);
-  void add_arr(const std::string name, std::vector<float> &values);
-  void add_arr(const std::string name, std::vector<int> &values);
-  void add_arr(const std::string name, std::vector<unsigned> &values);
-  void add_arr(const std::string name, std::vector<short> &values);
-  void add_arr(const std::string name, std::vector<unsigned short> &values);
-  void add_arr(const std::string name, std::vector<std::string> &values);
+  void add_bool(const std::string &name, bool base_val = false);
+  void add_int(const std::string &name, int base_val = 0);
+  void add_uint64(const std::string &name, uint64_t base_val = 0);
+  void add_double(const std::string &name, double base_val = 0);
+  void add_vec2(const std::string &name, float2 base_val = float2(0, 0));
+  void add_vec3(const std::string &name, float3 base_val = float3(0, 0, 0));
+  void add_vec4(const std::string &name, float4 base_val = float4(0, 0, 0, 0));
+  void add_ivec2(const std::string &name, int2 base_val = int2(0, 0));
+  void add_ivec3(const std::string &name, int3 base_val = int3(0, 0, 0));
+  void add_ivec4(const std::string &name, int4 base_val = int4(0, 0, 0, 0));
+  void add_mat4(const std::string &name, float4x4 base_val = float4x4());
+  void add_enum(const std::string &name, const std::string &type_name, unsigned base_val = 0);
+  void add_string(const std::string &name, const std::string &base_val = "");
+  void add_block(const std::string &name, const Block *bl = nullptr);
+  void add_arr(const std::string &name, const std::vector<double> &values);
+  void add_arr(const std::string &name, const std::vector<float> &values);
+  void add_arr(const std::string &name, const std::vector<int> &values);
+  void add_arr(const std::string &name, const std::vector<unsigned> &values);
+  void add_arr(const std::string &name, const std::vector<short> &values);
+  void add_arr(const std::string &name, const std::vector<unsigned short> &values);
+  void add_arr(const std::string &name, const std::vector<std::string> &values);
 
-  void set_bool(const std::string name, bool base_val = false);
-  void set_int(const std::string name, int base_val = 0);
-  void set_uint64(const std::string name, uint64_t base_val = 0);
-  void set_double(const std::string name, double base_val = 0);
-  void set_vec2(const std::string name, float2 base_val = float2(0, 0));
-  void set_vec3(const std::string name, float3 base_val = float3(0, 0, 0));
-  void set_vec4(const std::string name, float4 base_val = float4(0, 0, 0, 0));
-  void set_ivec2(const std::string name, int2 base_val = int2(0, 0));
-  void set_ivec3(const std::string name, int3 base_val = int3(0, 0, 0));
-  void set_ivec4(const std::string name, int4 base_val = int4(0, 0, 0, 0));
-  void set_mat4(const std::string name, float4x4 base_val = float4x4());
-  void set_enum(const std::string name, const std::string &type_name, unsigned base_val = 0);
-  void set_string(const std::string name, std::string base_val = "");
-  void set_block(const std::string name, const Block *bl);
-  void set_arr(const std::string name, const std::vector<double> &values);
-  void set_arr(const std::string name, const std::vector<float> &values);
-  void set_arr(const std::string name, const std::vector<int> &values);
-  void set_arr(const std::string name, const std::vector<unsigned> &values);
-  void set_arr(const std::string name, const std::vector<short> &values);
-  void set_arr(const std::string name, const std::vector<unsigned short> &values);
-  void set_arr(const std::string name, const std::vector<std::string> &values);
+  void set_bool(const std::string &name, bool base_val = false);
+  void set_int(const std::string &name, int base_val = 0);
+  void set_uint64(const std::string &name, uint64_t base_val = 0);
+  void set_double(const std::string &name, double base_val = 0);
+  void set_vec2(const std::string &name, float2 base_val = float2(0, 0));
+  void set_vec3(const std::string &name, float3 base_val = float3(0, 0, 0));
+  void set_vec4(const std::string &name, float4 base_val = float4(0, 0, 0, 0));
+  void set_ivec2(const std::string &name, int2 base_val = int2(0, 0));
+  void set_ivec3(const std::string &name, int3 base_val = int3(0, 0, 0));
+  void set_ivec4(const std::string &name, int4 base_val = int4(0, 0, 0, 0));
+  void set_mat4(const std::string &name, float4x4 base_val = float4x4());
+  void set_enum(const std::string &name, const std::string &type_name, unsigned base_val = 0);
+  void set_string(const std::string &name, const std::string &base_val = "");
+  void set_block(const std::string &name, const Block *bl);
+  void set_arr(const std::string &name, const std::vector<double> &values);
+  void set_arr(const std::string &name, const std::vector<float> &values);
+  void set_arr(const std::string &name, const std::vector<int> &values);
+  void set_arr(const std::string &name, const std::vector<unsigned> &values);
+  void set_arr(const std::string &name, const std::vector<short> &values);
+  void set_arr(const std::string &name, const std::vector<unsigned short> &values);
+  void set_arr(const std::string &name, const std::vector<std::string> &values);
 
   void add_value(const std::string &name, const Value &value);
   void set_value(const std::string &name, const Value &value);
 
-  void add_detalization(Block &det);
+  void add_detalization(const Block &det);
 
   std::vector<std::string> names;
   std::vector<Value> values;
 };
 
 extern bool load_block_from_string(const std::string &str, Block &b);
-extern bool load_block_from_file(std::string path, Block &b);
-extern void save_block_to_string(std::string &str, Block &b);
-extern void save_block_to_file(std::string path, Block &b);
-extern std::string base_blk_path;
+extern bool load_block_from_file(const std::string &path, Block &b);
+extern void save_block_to_string(std::string &str, const Block &b);
+extern void save_block_to_file(const std::string &path, const Block &b);
 
 extern void register_enum_info(const std::string &name, const std::vector<std::pair<std::string, unsigned>> &values);
 extern const std::vector<std::pair<std::string, unsigned>> *get_enum_info(const std::string &name);
